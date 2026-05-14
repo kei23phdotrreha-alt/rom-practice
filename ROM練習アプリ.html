@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ROM測定 練習アプリ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --navy: #0F2044;
+    --navy2: #1A3460;
+    --gold: #C9A84C;
+    --gold2: #E8C96A;
+    --cream: #F7F3EC;
+    --cream2: #EDE7DC;
+    --green: #2D6A4F;
+    --green-light: #D8F3DC;
+    --red: #9B2226;
+    --red-light: #FFDDD2;
+    --text: #1a1a2e;
+    --text2: #4a4a6a;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* ===== SCREENS ===== */
+  .screen { display: none; min-height: 100dvh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ===== HOME ===== */
+  #home {
+    background: var(--navy);
+    position: relative;
+    overflow: hidden;
+  }
+  #home::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,168,76,0.18) 0%, transparent 70%);
+  }
+  #home::after {
+    content: '';
+    position: absolute;
+    bottom: 60px; left: -60px;
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,168,76,0.10) 0%, transparent 70%);
+  }
+
+  .home-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 48px 24px 32px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gold2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    width: fit-content;
+  }
+
+  .home-title {
+    font-size: 32px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .home-title span { color: var(--gold); }
+
+  .home-sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 36px;
+    line-height: 1.6;
+  }
+
+  /* Stats dashboard */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .stat-card.gold-border { border-color: rgba(201,168,76,0.4); }
+  .stat-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    color: #fff;
+    line-height: 1;
+  }
+  .stat-value.gold { color: var(--gold); }
+  .stat-unit { font-size: 13px; color: rgba(255,255,255,0.4); margin-left: 2px; }
+
+  /* Weak section preview */
+  .weak-preview {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 32px;
+  }
+  .weak-preview-title {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .weak-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .weak-tag {
+    background: rgba(155,34,38,0.3);
+    border: 1px solid rgba(155,34,38,0.5);
+    border-radius: 100px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: #ffb3b3;
+  }
+  .no-weak {
+    font-size: 13px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  /* Mode buttons */
+  .mode-section { margin-bottom: 16px; }
+  .mode-title {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .mode-btn {
+    width: 100%;
+    padding: 18px 20px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.15s, opacity 0.15s;
+    margin-bottom: 10px;
+  }
+  .mode-btn:active { transform: scale(0.97); opacity: 0.85; }
+  .mode-btn.primary {
+    background: linear-gradient(135deg, var(--gold) 0%, #a07830 100%);
+    color: var(--navy);
+  }
+  .mode-btn.secondary {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+  }
+  .mode-btn.danger {
+    background: rgba(155,34,38,0.2);
+    border: 1px solid rgba(155,34,38,0.4);
+    color: #ffb3b3;
+  }
+  .mode-btn .btn-left { display: flex; align-items: center; gap: 10px; }
+  .mode-btn .btn-icon { font-size: 20px; }
+  .mode-btn .btn-desc { font-size: 11px; font-weight: 400; opacity: 0.7; display: block; margin-top: 2px; text-align: left; }
+  .mode-btn .btn-arrow { font-size: 18px; opacity: 0.6; }
+  .reset-btn {
+    width: 100%;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.25);
+    font-size: 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+    padding: 8px;
+    cursor: pointer;
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  /* ===== QUIZ SCREEN ===== */
+  #quiz {
+    background: var(--cream);
+    flex-direction: column;
+  }
+
+  .quiz-header {
+    background: var(--navy);
+    padding: 16px 20px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .quiz-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .back-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 100px;
+    padding: 8px 14px;
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+  }
+  .quiz-mode-label {
+    font-size: 12px;
+    color: var(--gold);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .quiz-counter {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .progress-track {
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold) 0%, var(--gold2) 100%);
+    border-radius: 100px;
+    transition: width 0.4s ease;
+  }
+
+  .quiz-body {
+    flex: 1;
+    padding: 24px 20px 100px;
+    overflow-y: auto;
+  }
+
+  .section-chip {
+    display: inline-flex;
+    align-items: center;
+    background: var(--navy);
+    color: var(--gold);
+    border-radius: 100px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 16px;
+  }
+
+  .question-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 22px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  }
+  .question-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text2);
+    opacity: 0.6;
+    margin-bottom: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .question-text {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.65;
+    color: var(--navy);
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .choice-btn {
+    width: 100%;
+    background: #fff;
+    border: 1.5px solid rgba(0,0,0,0.1);
+    border-radius: var(--radius-sm);
+    padding: 15px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    text-align: left;
+    line-height: 1.5;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .choice-btn:active { transform: scale(0.98); }
+  .choice-label {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--cream2);
+    color: var(--navy);
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: 'DM Mono', monospace;
+  }
+  .choice-btn.correct {
+    background: var(--green-light);
+    border-color: var(--green);
+  }
+  .choice-btn.correct .choice-label {
+    background: var(--green);
+    color: #fff;
+  }
+  .choice-btn.wrong {
+    background: var(--red-light);
+    border-color: var(--red);
+  }
+  .choice-btn.wrong .choice-label {
+    background: var(--red);
+    color: #fff;
+  }
+  .choice-btn.disabled { pointer-events: none; opacity: 0.5; }
+
+  /* Explanation */
+  .explanation {
+    background: var(--navy);
+    border-radius: var(--radius);
+    padding: 18px 18px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .explanation.show { display: block; }
+  .exp-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .exp-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .exp-badge.ok { background: rgba(45,106,79,0.4); color: #95d5b2; }
+  .exp-badge.ng { background: rgba(155,34,38,0.4); color: #ffb3b3; }
+  .exp-text {
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.7;
+  }
+
+  /* Next button */
+  .next-area {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, var(--cream) 70%, transparent);
+    padding: 16px 20px 28px;
+    display: none;
+  }
+  .next-area.show { display: block; }
+  .next-btn {
+    width: 100%;
+    padding: 17px;
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .next-btn:active { transform: scale(0.97); opacity: 0.85; }
+  .next-btn.gold-btn {
+    background: linear-gradient(135deg, var(--gold) 0%, #a07830 100%);
+    color: var(--navy);
+  }
+
+  /* ===== RESULT SCREEN ===== */
+  #result {
+    background: var(--navy);
+    overflow-y: auto;
+  }
+  .result-inner {
+    padding: 48px 24px 48px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+  .result-title {
+    font-size: 13px;
+    color: var(--gold);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .score-ring-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+  .score-ring {
+    position: relative;
+    width: 160px;
+    height: 160px;
+  }
+  .score-ring svg {
+    width: 160px;
+    height: 160px;
+    transform: rotate(-90deg);
+  }
+  .score-ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 10; }
+  .score-ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+  .score-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    text-align: center;
+  }
+  .score-pct {
+    font-family: 'DM Mono', monospace;
+    font-size: 36px;
+    font-weight: 500;
+    color: #fff;
+    line-height: 1;
+  }
+  .score-pct-sym { font-size: 18px; color: rgba(255,255,255,0.5); }
+  .score-grade {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 4px;
+  }
+
+  .result-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  .r-stat {
+    background: rgba(255,255,255,0.06);
+    border-radius: var(--radius-sm);
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .r-stat-n {
+    font-family: 'DM Mono', monospace;
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .r-stat-l { font-size: 11px; color: rgba(255,255,255,0.4); }
+  .r-stat-n.green { color: #95d5b2; }
+  .r-stat-n.red { color: #ffb3b3; }
+  .r-stat-n.gold { color: var(--gold); }
+
+  /* Wrong list */
+  .wrong-section { margin-bottom: 28px; }
+  .wrong-title {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .wrong-item {
+    background: rgba(155,34,38,0.15);
+    border: 1px solid rgba(155,34,38,0.3);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+  }
+  .wrong-q { font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.5; margin-bottom: 8px; }
+  .wrong-ans { font-size: 12px; color: #ffb3b3; margin-bottom: 3px; }
+  .wrong-cor { font-size: 12px; color: #95d5b2; }
+
+  .result-btns { display: flex; flex-direction: column; gap: 10px; }
+  .result-btn {
+    width: 100%;
+    padding: 17px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .result-btn:active { transform: scale(0.97); opacity: 0.85; }
+  .result-btn.primary {
+    background: linear-gradient(135deg, var(--gold) 0%, #a07830 100%);
+    color: var(--navy);
+  }
+  .result-btn.outline {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+  }
+  .result-btn.danger-outline {
+    background: rgba(155,34,38,0.15);
+    border: 1px solid rgba(155,34,38,0.35);
+    color: #ffb3b3;
+  }
+
+  /* Section bar chart */
+  .section-chart { margin-bottom: 28px; }
+  .sc-title {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .sc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .sc-label { font-size: 12px; color: rgba(255,255,255,0.6); width: 90px; flex-shrink: 0; line-height: 1.3; }
+  .sc-bar-wrap { flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 100px; overflow: hidden; }
+  .sc-bar { height: 100%; border-radius: 100px; transition: width 0.8s ease; }
+  .sc-pct { font-family: 'DM Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.4); width: 34px; text-align: right; flex-shrink: 0; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 20px; left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--navy);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 999;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div class="screen active" id="home">
+  <div class="home-inner">
+    <div class="app-badge">🩺 ROM測定 練習アプリ</div>
+    <div class="home-title">関節可動域測定<br><span>マスターしよう</span></div>
+    <div class="home-sub">50問・ランダム出題<br>正答率・苦手問題を自動記録</div>
+
+    <div class="stats-grid">
+      <div class="stat-card gold-border">
+        <div class="stat-label">累計正答率</div>
+        <div class="stat-value gold" id="home-rate">—<span class="stat-unit">%</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">挑戦回数</div>
+        <div class="stat-value" id="home-attempts">0<span class="stat-unit">回</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">正解数(累計)</div>
+        <div class="stat-value" id="home-correct">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">苦手問題</div>
+        <div class="stat-value" id="home-weak">0<span class="stat-unit">問</span></div>
+      </div>
+    </div>
+
+    <div class="weak-preview">
+      <div class="weak-preview-title">⚠️ 苦手セクション（正答率50%未満）</div>
+      <div class="weak-tags" id="weak-section-tags">
+        <span class="no-weak">まだデータがありません</span>
+      </div>
+    </div>
+
+    <div class="mode-section">
+      <div class="mode-title">練習モードを選ぶ</div>
+      <button class="mode-btn primary" onclick="startQuiz('all')">
+        <div class="btn-left">
+          <span class="btn-icon">🎲</span>
+          <div>
+            全50問ランダム
+            <span class="btn-desc">すべての問題をシャッフル出題</span>
+          </div>
+        </div>
+        <span class="btn-arrow">→</span>
+      </button>
+      <button class="mode-btn secondary" onclick="startQuiz('weak')">
+        <div class="btn-left">
+          <span class="btn-icon">🎯</span>
+          <div>
+            苦手問題のみ
+            <span class="btn-desc">正答率50%未満の問題を集中練習</span>
+          </div>
+        </div>
+        <span class="btn-arrow">→</span>
+      </button>
+    </div>
+
+    <button class="reset-btn" onclick="confirmReset()">履歴をリセット</button>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div class="screen" id="quiz">
+  <div class="quiz-header">
+    <div class="quiz-nav">
+      <button class="back-btn" onclick="goHome()">← ホーム</button>
+      <span class="quiz-mode-label" id="quiz-mode-label">ランダム</span>
+      <span class="quiz-counter" id="quiz-counter">1 / 50</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:2%"></div>
+    </div>
+  </div>
+
+  <div class="quiz-body" id="quiz-body"></div>
+
+  <div class="next-area" id="next-area">
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">次の問題 →</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="result">
+  <div class="result-inner">
+    <div class="result-title">📊 セッション結果</div>
+
+    <div class="score-ring-wrap">
+      <div class="score-ring">
+        <svg viewBox="0 0 160 160">
+          <circle class="score-ring-bg" cx="80" cy="80" r="70"/>
+          <circle class="score-ring-fill" id="ring-fill" cx="80" cy="80" r="70"
+            stroke-dasharray="439.8" stroke-dashoffset="439.8"/>
+        </svg>
+        <div class="score-center">
+          <div class="score-pct" id="result-pct">0<span class="score-pct-sym">%</span></div>
+          <div class="score-grade" id="result-grade">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-stats">
+      <div class="r-stat">
+        <div class="r-stat-n green" id="r-correct">0</div>
+        <div class="r-stat-l">正解</div>
+      </div>
+      <div class="r-stat">
+        <div class="r-stat-n red" id="r-wrong">0</div>
+        <div class="r-stat-l">不正解</div>
+      </div>
+      <div class="r-stat">
+        <div class="r-stat-n gold" id="r-total">0</div>
+        <div class="r-stat-l">出題数</div>
+      </div>
+    </div>
+
+    <div class="section-chart">
+      <div class="sc-title">📌 セクション別正答率</div>
+      <div id="section-chart-body"></div>
+    </div>
+
+    <div class="wrong-section" id="wrong-section"></div>
+
+    <div class="result-btns">
+      <button class="result-btn primary" onclick="startQuiz('all')">もう一度（全問）</button>
+      <button class="result-btn danger-outline" onclick="startQuiz('weak')">苦手問題を集中練習</button>
+      <button class="result-btn outline" onclick="goHome()">ホームへ戻る</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const QUESTIONS = [
+  {id:0,sec:"測定法・概念",q:"ROM測定において、原則として用いる測定方法はどれか。",choices:["自動ROM（被検者自身が動かす）","他動ROM（検者が動かす）","自動と他動の平均値","最大努力での自動ROM"],ans:1,exp:"原則として他動ROMで測定する。痛みや手術後など他動が禁忌の場合のみ自動ROMを測定する。"},
+  {id:1,sec:"測定法・概念",q:"関節可動域測定の基本肢位（開始肢位）として正しいのはどれか。",choices:["最大屈曲位","解剖学的肢位（中間位ゼロ開始肢位）","機能的肢位","最大伸展位"],ans:1,exp:"関節運動は解剖学的肢位（neutral zero starting position：中間位ゼロ開始肢位）を基本肢位とする。"},
+  {id:2,sec:"測定法・概念",q:"角度計（ゴニオメーター）の固定アームは原則としてどこに当てるか。",choices:["関節の遠位部（移動軸）","関節の近位部（基本軸）","関節の中心点","測定しやすい場所"],ans:1,exp:"固定アームは基本軸（関節の近位部）に、可動アームは移動軸（遠位部）に当てる。"},
+  {id:3,sec:"測定法・概念",q:"ROM測定の記録方法として正しいのはどれか。",choices:["最終肢位の角度のみ記録する","開始肢位と最終肢位の2回の値を記録する","最大値と最小値の平均を記録する","自動ROMと他動ROMの差を記録する"],ans:1,exp:"開始肢位と最終肢位の2回の値を記録する。例：肩関節屈曲 0～130°"},
+  {id:4,sec:"測定法・概念",q:"痙縮（spasticity）によりROM制限がみられた場合、測定値への付記として正しいのはどれか。",choices:["測定値の後に「P」を付記する","測定値の後に「SJ」を付記する","測定値の後に「SP」を付記する","特に付記しない"],ans:1,exp:"痙縮（spasticity）は「SJ」、痛み（pain）は「P」を測定値の後ろ（または前）に付記する。"},
+  {id:5,sec:"測定法・概念",q:"ROM制限が生じる最大の理由はどれか。",choices:["加齢","不動（固定）","疼痛","筋力低下"],ans:1,exp:"ROM制限発生の最大の理由は不動（固定）である。意識障害、麻痺、外傷などが不動をもたらす。"},
+  {id:6,sec:"測定法・概念",q:"他動ROM測定時の注意点として正しいのはどれか。",choices:["一般に関節の遠位部を固定し近位部を動かす","他動運動中に痛みが生じても最終域まで動かす","他動的な力は近位部および遠位部に加える","代償運動は多少許容してよい"],ans:2,exp:"他動的な力は近位部および遠位部に加える。一般に近位部を固定し遠位部を動かす。痛みが生じたらその角度で止め、代償運動は防止する。"},
+  {id:7,sec:"測定法・概念",q:"ROM測定の正確性に影響する因子として誤っているのはどれか。",choices:["被検者の恐れや緊張","測定時間や温度・天候","角度計の目盛りの読み違い","測定者の年齢"],ans:3,exp:"正確性に影響する因子は①被検者側の因子②測定時間・温度・天候③目盛りの読み違い④測定方法⑤測定技術である。測定者の年齢は挙げられていない。"},
+  {id:8,sec:"測定法・概念",q:"測定前の確認事項として正しいのはどれか。",choices:["関節痛の有無など被検者から聴取し炎症症状を確認する","感覚障害の確認は測定後に行う","角度計を使って先に測定してから自動運動を観察する","骨粗鬆症があれば他動ROMは禁忌のため測定しない"],ans:0,exp:"測定前に関節痛の有無を聴取し、発赤・腫脹などの炎症症状や皮膚状態を観察する。角度計使用前に自動運動を観察することも重要。"},
+  {id:9,sec:"測定法・概念",q:"ROM測定が禁忌となる状況として正しいのはどれか。",choices:["軽度の筋力低下がある場合","関節脱臼・骨折や軟部組織の手術直後","高齢者で骨密度が低い場合","感覚障害がある場合"],ans:1,exp:"関節脱臼、骨折や軟部組織の手術直後、関節の強い炎症、化骨性筋炎などは禁忌となる。"},
+  {id:10,sec:"測定法・概念",q:"ROM測定の意義として正しいのはどれか。",choices:["筋力の絶対値を評価する","随意運動の基礎となり他の運動機能検査の判定基準となる","痛みの程度を数値化する","関節の安定性を評価する"],ans:1,exp:"ROM測定は随意運動の基礎となり、他の運動機能検査測定の判定基準となる。治療目標設定や治療効果判定にも用いる。"},
+  {id:11,sec:"測定法・概念",q:"関節運動の運動面の説明として正しいのはどれか。",choices:["矢状面は身体を前後に分ける面である","前額面は身体を左右に分ける面である","水平面は身体を上下に分ける面である","垂直軸は前額面に直交する軸である"],ans:2,exp:"水平面は身体を上下に分ける面。矢状面は身体を左右に分ける面、前額面は身体を前後に分ける面である。"},
+  {id:12,sec:"測定法・概念",q:"測定の手順として正しい順序はどれか。",choices:["開始肢位確認→最終肢位まで動かす→角度計装着→記録","被検者を開始肢位にする→骨指標確認・角度計装着→開始角度読み取り→最終肢位まで動かして角度読み取り","角度計装着→被検者を開始肢位にする→最終肢位まで動かす→記録","最終肢位まで動かす→開始肢位に戻す→角度計装着→記録"],ans:1,exp:"正しい手順：①開始肢位にする②骨指標確認・角度計装着③開始角度読取④角度計外し最終肢位まで動かす⑤再度角度計装着し最終角度読取⑥開始肢位に戻す⑦記録。"},
+  {id:13,sec:"測定法・概念",q:"動筋と拮抗筋の関係についてROM制限との関連で正しいのはどれか。",choices:["動筋と拮抗筋の筋力が均衡しているとROM制限が起こりやすい","動筋と拮抗筋の筋力の不均衡化によってもROM制限が起こることがある","拮抗筋が強いほどROMは大きくなる","動筋が弱いとROMは増大する"],ans:1,exp:"動筋と拮抗筋の筋力の不均衡化によってもROM制限が起こることがある。"},
+  {id:14,sec:"測定法・概念",q:"関節リウマチ患者のROM測定で特に注意すべき因子はどれか。",choices:["測定者の利き手","測定場所の広さ","服薬時間や測定時間・温度・天候","被検者の年齢"],ans:2,exp:"関節リウマチなどの関節疾患では服薬時間や測定時間、温度、天候によって関節の痛みが変化し、ROMに影響することがある。"},
+  {id:15,sec:"肩甲帯",q:"肩甲帯屈曲・伸展の基本軸として正しいのはどれか。",choices:["肩峰と胸骨上縁を結ぶ線","両側の肩峰を結ぶ線","肩峰を通る床への垂直線","頭頂と肩峰を結ぶ線"],ans:1,exp:"肩甲帯屈曲・伸展の基本軸は「両側の肩峰を結ぶ線」、移動軸は「頭頂と肩峰を結ぶ線」である。"},
+  {id:16,sec:"肩甲帯",q:"肩甲帯屈曲・伸展の参考可動域として正しいのはどれか。",choices:["屈曲0〜10°・伸展0〜10°","屈曲0〜20°・伸展0〜20°","屈曲0〜30°・伸展0〜30°","屈曲0〜20°・伸展0〜10°"],ans:1,exp:"肩甲帯屈曲・伸展の参考可動域はともに0〜20°である。"},
+  {id:17,sec:"肩甲帯",q:"肩甲帯挙上・引き下げ（下制）の参考可動域として正しいのはどれか。",choices:["挙上0〜10°・引き下げ0〜10°","挙上0〜20°・引き下げ0〜10°","挙上0〜20°・引き下げ0〜20°","挙上0〜30°・引き下げ0〜10°"],ans:1,exp:"肩甲帯挙上は0〜20°、引き下げ（下制）は0〜10°が参考可動域である。"},
+  {id:18,sec:"肩甲帯",q:"肩甲帯挙上・引き下げの測定に関して正しいのはどれか。",choices:["前面から測定する","背面から測定する","側面から測定する","どの面からでもよい"],ans:1,exp:"肩甲帯の挙上・引き下げは背面から測定する。基本軸は両側の肩峰を結ぶ線、移動軸は肩峰と胸骨上縁を結ぶ線。"},
+  {id:19,sec:"肩関節",q:"肩関節屈曲（前方挙上）の参考可動域として正しいのはどれか。",choices:["0〜90°","0〜120°","0〜150°","0〜180°"],ans:3,exp:"肩関節屈曲（前方挙上）の参考可動域は0〜180°。基本軸は肩峰を通る床への垂直線、移動軸は上腕骨。"},
+  {id:20,sec:"肩関節",q:"肩関節屈曲（前方挙上）測定時の注意点として正しいのはどれか。",choices:["前腕を回内位とする","体幹が動かないように固定し脊柱が前後屈しないよう注意する","肘関節を屈曲位で測定する","肩関節を90°外転位で行う"],ans:1,exp:"肩関節屈曲は前腕を中間位とし、体幹が動かないように固定する。脊柱が前後屈しないように注意する。"},
+  {id:21,sec:"肩関節",q:"肩関節外転（側方挙上）の参考可動域と測定時の注意点の組み合わせとして正しいのはどれか。",choices:["0〜90°・前腕を回内する","0〜180°・90°以上で前腕を回外する","0〜180°・前腕は常に回内位を保つ","0〜150°・90°以上で前腕を回内する"],ans:1,exp:"肩関節外転の参考可動域は0〜180°。体幹の側屈が起こらないようにし、90°以上になったら前腕を回外することを原則とする。"},
+  {id:22,sec:"肩関節",q:"肩関節外旋・内旋（標準法）の参考可動域として正しいのはどれか。",choices:["外旋0〜45°・内旋0〜60°","外旋0〜60°・内旋0〜80°","外旋0〜80°・内旋0〜60°","外旋0〜60°・内旋0〜60°"],ans:1,exp:"肩関節外旋は0〜60°、内旋は0〜80°が参考可動域。上腕を体幹に接し肘を90°屈曲した肢位で行う。移動軸は尺骨。"},
+  {id:23,sec:"肩関節",q:"肩関節水平屈曲（水平内転）の参考可動域として正しいのはどれか。",choices:["0〜90°","0〜100°","0〜135°","0〜150°"],ans:2,exp:"肩関節水平屈曲（horizontal adduction）の参考可動域は0〜135°。肩関節を90°外転位として測定する。"},
+  {id:24,sec:"肩関節",q:"肩関節内転の参考可動域として正しいのはどれか。",choices:["0°（解剖学的肢位で0°）","0〜20°","0〜30°","0〜45°"],ans:0,exp:"肩関節内転の参考可動域は0°（解剖学的肢位が最大内転位のため）。測定には他側下肢を屈曲挙上させてその下を通す方法をとる。"},
+  {id:25,sec:"肘関節・前腕",q:"肘関節屈曲の参考可動域と移動軸の組み合わせとして正しいのはどれか。",choices:["0〜120°・尺骨","0〜145°・橈骨","0〜145°・尺骨","0〜160°・橈骨"],ans:1,exp:"肘関節屈曲の参考可動域は0〜145°、移動軸は橈骨である。前腕は回外位で測定する。"},
+  {id:26,sec:"肘関節・前腕",q:"肘関節伸展の参考可動域として正しいのはどれか。",choices:["0°","0〜5°","0〜10°","0〜15°"],ans:1,exp:"肘関節伸展の参考可動域は0〜5°である。"},
+  {id:27,sec:"肘関節・前腕",q:"前腕回内・回外の参考可動域として正しいのはどれか。",choices:["回内0〜80°・回外0〜90°","回内0〜90°・回外0〜90°","回内0〜90°・回外0〜80°","回内0〜80°・回外0〜80°"],ans:1,exp:"前腕回内・回外はともに0〜90°。肩の回旋が入らないように肘を90°に屈曲して測定する。移動軸は手指を伸展した手掌面。"},
+  {id:28,sec:"肘関節・前腕",q:"前腕回内・回外測定時の注意点として正しいのはどれか。",choices:["肘関節を伸展位で行う","肩の回旋が入らないように肘を90°に屈曲する","前腕は回外位で固定して行う","肩関節を90°外転した肢位で行う"],ans:1,exp:"肩の回旋が入らないように肘を90°に屈曲して測定する。基本軸は上腕骨、移動軸は手指を伸展した手掌面。"},
+  {id:29,sec:"手関節",q:"手関節屈曲（掌屈）・伸展（背屈）の参考可動域として正しいのはどれか。",choices:["掌屈0〜80°・背屈0〜70°","掌屈0〜90°・背屈0〜70°","掌屈0〜90°・背屈0〜80°","掌屈0〜80°・背屈0〜80°"],ans:1,exp:"手関節掌屈は0〜90°、背屈は0〜70°。基本軸は橈骨、移動軸は第2中手骨。前腕は中間位とする。"},
+  {id:30,sec:"手関節",q:"手関節橈屈・尺屈の参考可動域として正しいのはどれか。",choices:["橈屈0〜25°・尺屈0〜55°","橈屈0〜30°・尺屈0〜45°","橈屈0〜20°・尺屈0〜50°","橈屈0〜25°・尺屈0〜45°"],ans:0,exp:"手関節橈屈は0〜25°、尺屈は0〜55°。基本軸は前腕の中央線、移動軸は第3中手骨。前腕を回内位で行う。"},
+  {id:31,sec:"手関節",q:"手関節屈曲（掌屈）の基本軸と移動軸の組み合わせとして正しいのはどれか。",choices:["橈骨・第3中手骨","橈骨・第2中手骨","尺骨・第2中手骨","前腕中央線・第3中手骨"],ans:1,exp:"手関節屈曲（掌屈）の基本軸は橈骨、移動軸は第2中手骨。前腕は中間位とする。"},
+  {id:32,sec:"手関節",q:"手関節橈屈・尺屈測定時の前腕の肢位として正しいのはどれか。",choices:["前腕回外位","前腕中間位","前腕回内位","どの肢位でもよい"],ans:2,exp:"手関節橈屈・尺屈は前腕を回内位で行う。基本軸は前腕の中央線、移動軸は第3中手骨。"},
+  {id:33,sec:"手指・母指",q:"母指MCP関節屈曲の参考可動域・基本軸・移動軸の組み合わせとして正しいのはどれか。",choices:["0〜60°・第1中手骨・第1基節骨","0〜80°・第1中手骨・第1基節骨","0〜60°・第1基節骨・第1末節骨","0〜80°・第1基節骨・第1末節骨"],ans:0,exp:"母指MCP関節屈曲は0〜60°、基本軸は第1中手骨、移動軸は第1基節骨。"},
+  {id:34,sec:"手指・母指",q:"母指IP関節屈曲の参考可動域・基本軸・移動軸の組み合わせとして正しいのはどれか。",choices:["0〜60°・第1中手骨・第1基節骨","0〜80°・第1基節骨・第1末節骨","0〜80°・第1中手骨・第1末節骨","0〜60°・第1基節骨・第1末節骨"],ans:1,exp:"母指IP関節屈曲は0〜80°、基本軸は第1基節骨、移動軸は第1末節骨。"},
+  {id:35,sec:"手指・母指",q:"母指橈側外転・掌側外転の参考可動域として正しいのはどれか。",choices:["橈側外転0〜60°・掌側外転0〜90°","橈側外転0〜90°・掌側外転0〜60°","橈側外転0〜45°・掌側外転0〜60°","橈側外転0〜60°・掌側外転0〜60°"],ans:0,exp:"母指橈側外転は0〜60°、掌側外転は0〜90°が参考可動域。橈側外転の基本軸は示指（橈骨の延長上）、移動軸は母指。"},
+  {id:36,sec:"手指・母指",q:"手指（示指〜小指）MCP関節屈曲・伸展の参考可動域として正しいのはどれか。",choices:["屈曲0〜80°・伸展0〜30°","屈曲0〜90°・伸展0〜45°","屈曲0〜100°・伸展0〜45°","屈曲0〜90°・伸展0〜30°"],ans:1,exp:"手指MCP関節屈曲は0〜90°、伸展は0〜45°。基本軸は第2〜5中手骨、移動軸は第2〜5基節骨。"},
+  {id:37,sec:"手指・母指",q:"手指（示指〜小指）PIP関節屈曲の参考可動域として正しいのはどれか。",choices:["0〜80°","0〜90°","0〜100°","0〜110°"],ans:2,exp:"手指PIP関節屈曲の参考可動域は0〜100°。基本軸は第2〜5基節骨、移動軸は第2〜5中節骨。"},
+  {id:38,sec:"手指・母指",q:"手指（示指〜小指）DIP関節屈曲の参考可動域として正しいのはどれか。",choices:["0〜60°","0〜70°","0〜80°","0〜90°"],ans:2,exp:"手指DIP関節屈曲の参考可動域は0〜80°。基本軸は第2〜5中節骨、移動軸は第2〜5末節骨。DIPは10°の過伸展をとりうる。"},
+  {id:39,sec:"手指・母指",q:"手指の外転・内転測定に関して正しいのはどれか。",choices:["外転・内転の基本軸は第2中手骨延長線で移動軸は第2・4・5指軸","外転・内転の基本軸は第3中手骨延長線で移動軸は第2・4・5指軸","外転・内転の基本軸は第3中手骨延長線で移動軸は全指軸","中指の運動は屈曲・伸展とする"],ans:1,exp:"手指外転・内転の基本軸は第3中手骨延長線、移動軸は第2・4・5指軸。中指の運動は橈側外転・尺側外転とする。"},
+  {id:40,sec:"股関節",q:"股関節屈曲の参考可動域と測定肢位の組み合わせとして正しいのはどれか。",choices:["0〜110°・背臥位膝屈曲位","0〜125°・背臥位膝屈曲位","0〜125°・腹臥位膝伸展位","0〜135°・背臥位膝伸展位"],ans:1,exp:"股関節屈曲は0〜125°、背臥位・膝屈曲位で測定。伸展は0〜15°、腹臥位・膝伸展位で行う。基本軸は体幹と平行な線、移動軸は大腿骨。"},
+  {id:41,sec:"股関節",q:"股関節外転の参考可動域と移動軸として正しいのはどれか。",choices:["0〜30°・大腿中央線","0〜45°・大腿中央線","0〜30°・下腿中央線","0〜45°・下腿中央線"],ans:1,exp:"股関節外転の参考可動域は0〜45°、移動軸は大腿中央線（上前腸骨棘より膝蓋骨中心を結ぶ線）。基本軸は両側上前腸骨棘を結ぶ線への垂直線。"},
+  {id:42,sec:"股関節",q:"股関節内転の参考可動域として正しいのはどれか。",choices:["0〜10°","0〜20°","0〜30°","0〜45°"],ans:1,exp:"股関節内転の参考可動域は0〜20°。内転の場合は反対側の下肢を屈曲挙上してその下を通して内転させる。"},
+  {id:43,sec:"股関節",q:"股関節外旋・内旋の参考可動域として正しいのはどれか。",choices:["外旋0〜30°・内旋0〜30°","外旋0〜45°・内旋0〜45°","外旋0〜45°・内旋0〜30°","外旋0〜60°・内旋0〜45°"],ans:1,exp:"股関節外旋・内旋ともに0〜45°が参考可動域。背臥位で股関節と膝関節を90°屈曲位にして行う。"},
+  {id:44,sec:"股関節",q:"股関節外旋・内旋の測定肢位として正しいのはどれか。",choices:["腹臥位で膝関節を伸展した肢位","背臥位で股関節と膝関節を90°屈曲した肢位","立位で股関節を中間位にした肢位","側臥位で股関節を30°屈曲した肢位"],ans:1,exp:"股関節外旋・内旋は背臥位で股関節と膝関節を90°屈曲位にして行う。骨盤の代償を少なくする。"},
+  {id:45,sec:"膝関節",q:"膝関節屈曲の参考可動域と移動軸として正しいのはどれか。",choices:["0〜120°・腓骨（腓骨頭と外果を結ぶ線）","0〜130°・腓骨（腓骨頭と外果を結ぶ線）","0〜130°・下腿中央線","0〜145°・腓骨（腓骨頭と外果を結ぶ線）"],ans:1,exp:"膝関節屈曲の参考可動域は0〜130°、基本軸は大腿骨、移動軸は腓骨（腓骨頭と外果を結ぶ線）。屈曲は股関節を屈曲位で行う。"},
+  {id:46,sec:"膝関節",q:"膝関節屈曲測定時の注意点として正しいのはどれか。",choices:["伸展位で行う","股関節を屈曲位で行う","股関節を伸展位で行う","膝関節を完全伸展位から測定する"],ans:1,exp:"膝関節屈曲は股関節を屈曲位で行う。基本軸は大腿骨、移動軸は腓骨（腓骨頭と外果を結ぶ線）。"},
+  {id:47,sec:"足関節・足部",q:"足関節背屈・底屈の参考可動域として正しいのはどれか。",choices:["背屈0〜15°・底屈0〜45°","背屈0〜20°・底屈0〜45°","背屈0〜20°・底屈0〜50°","背屈0〜25°・底屈0〜50°"],ans:1,exp:"足関節背屈は0〜20°、底屈は0〜45°。膝関節を屈曲位で行う。基本軸は矢状面における腓骨長軸への垂直線、移動軸は足底面。"},
+  {id:48,sec:"足関節・足部",q:"足関節内がえし・外がえしの参考可動域として正しいのはどれか。",choices:["内がえし0〜20°・外がえし0〜30°","内がえし0〜30°・外がえし0〜20°","内がえし0〜30°・外がえし0〜30°","内がえし0〜20°・外がえし0〜20°"],ans:1,exp:"内がえし（inversion）は0〜30°、外がえし（eversion）は0〜20°。膝関節を屈曲位、足関節を0度で行う。"},
+  {id:49,sec:"足関節・足部",q:"足関節内がえし・外がえしの基本軸として正しいのはどれか。",choices:["矢状面における腓骨長軸への垂直線","前額面における下腿軸への垂直線","第2中足骨長軸","足底面"],ans:1,exp:"内がえし・外がえしの基本軸は前額面における下腿軸への垂直線、移動軸は足底面。膝関節屈曲位・足関節0度で行う。"},
+];
+
+const LABELS = ['A','B','C','D'];
+const SECTIONS = ["測定法・概念","肩甲帯","肩関節","肘関節・前腕","手関節","手指・母指","股関節","膝関節","足関節・足部"];
+const STORAGE_KEY = 'rom_app_v1';
+
+// ===== State =====
+let state = { attempts:0, totalCorrect:0, totalAnswered:0, perQ:{} }; // perQ[id] = {correct, total}
+let session = { mode:'all', queue:[], idx:0, results:[] };
+
+function loadState() {
+  try { const d = localStorage.getItem(STORAGE_KEY); if(d) state = JSON.parse(d); } catch(e){}
+}
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function getWeakQuestions() {
+  return QUESTIONS.filter(q => {
+    const p = state.perQ[q.id];
+    if(!p || p.total===0) return false;
+    return (p.correct/p.total) < 0.5;
+  });
+}
+
+function getWeakSections() {
+  const secData = {};
+  SECTIONS.forEach(s => secData[s] = {correct:0,total:0});
+  QUESTIONS.forEach(q => {
+    const p = state.perQ[q.id];
+    if(!p) return;
+    secData[q.sec].correct += p.correct;
+    secData[q.sec].total += p.total;
+  });
+  return SECTIONS.filter(s => secData[s].total > 0 && secData[s].correct/secData[s].total < 0.5);
+}
+
+function updateHomeStats() {
+  const rate = state.totalAnswered > 0 ? Math.round(state.totalCorrect/state.totalAnswered*100) : null;
+  document.getElementById('home-rate').innerHTML = rate !== null ? `${rate}<span class="stat-unit">%</span>` : `—<span class="stat-unit">%</span>`;
+  document.getElementById('home-attempts').innerHTML = `${state.attempts}<span class="stat-unit">回</span>`;
+  document.getElementById('home-correct').textContent = state.totalCorrect;
+  const weakQ = getWeakQuestions();
+  document.getElementById('home-weak').innerHTML = `${weakQ.length}<span class="stat-unit">問</span>`;
+
+  const weakSecs = getWeakSections();
+  const tagsEl = document.getElementById('weak-section-tags');
+  if(weakSecs.length === 0) {
+    tagsEl.innerHTML = '<span class="no-weak">' + (state.totalAnswered > 0 ? '苦手なセクションはありません 🎉' : 'まだデータがありません') + '</span>';
+  } else {
+    tagsEl.innerHTML = weakSecs.map(s => `<span class="weak-tag">${s}</span>`).join('');
+  }
+}
+
+function startQuiz(mode) {
+  session.mode = mode;
+  let pool;
+  if(mode === 'weak') {
+    pool = getWeakQuestions();
+    if(pool.length === 0) { showToast('苦手問題がまだありません。全問モードで練習しましょう！'); startQuiz('all'); return; }
+  } else {
+    pool = [...QUESTIONS];
+  }
+  session.queue = shuffle(pool);
+  session.idx = 0;
+  session.results = [];
+  showScreen('quiz');
+  document.getElementById('quiz-mode-label').textContent = mode === 'weak' ? '苦手集中' : 'ランダム';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const total = session.queue.length;
+  const idx = session.idx;
+  const q = session.queue[idx];
+  const pct = Math.round((idx+1)/total*100);
+
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('quiz-counter').textContent = `${idx+1} / ${total}`;
+  document.getElementById('next-area').classList.remove('show');
+  document.getElementById('next-btn').textContent = idx === total-1 ? '結果を見る →' : '次の問題 →';
+  if(idx === total-1) document.getElementById('next-btn').classList.add('gold-btn');
+  else document.getElementById('next-btn').classList.remove('gold-btn');
+
+  const html = `
+    <div class="section-chip">${q.sec}</div>
+    <div class="question-card">
+      <div class="question-num">Q${idx+1}</div>
+      <div class="question-text">${q.q}</div>
+    </div>
+    <div class="choices" id="choices">
+      ${q.choices.map((c,i) => `
+        <button class="choice-btn" id="choice-${i}" onclick="answer(${i})">
+          <span class="choice-label">${LABELS[i]}</span>
+          <span>${c}</span>
+        </button>
+      `).join('')}
+    </div>
+    <div class="explanation" id="explanation">
+      <div class="exp-header">
+        <span class="exp-badge" id="exp-badge">解説</span>
+      </div>
+      <div class="exp-text">${q.exp}</div>
+    </div>
+  `;
+  document.getElementById('quiz-body').innerHTML = html;
+  document.getElementById('quiz-body').scrollTop = 0;
+}
+
+function answer(chosen) {
+  const q = session.queue[session.idx];
+  const isCorrect = chosen === q.ans;
+
+  // Update state
+  if(!state.perQ[q.id]) state.perQ[q.id] = {correct:0,total:0};
+  state.perQ[q.id].total++;
+  if(isCorrect) state.perQ[q.id].correct++;
+  saveState();
+
+  session.results.push({q, chosen, correct: isCorrect});
+
+  // Visual feedback
+  document.querySelectorAll('.choice-btn').forEach((btn,i) => {
+    btn.classList.add('disabled');
+    if(i === q.ans) btn.classList.add('correct');
+    else if(i === chosen && !isCorrect) btn.classList.add('wrong');
+  });
+
+  const exp = document.getElementById('explanation');
+  const badge = document.getElementById('exp-badge');
+  exp.classList.add('show');
+  badge.textContent = isCorrect ? '✓ 正解' : '✗ 不正解';
+  badge.className = 'exp-badge ' + (isCorrect ? 'ok' : 'ng');
+
+  document.getElementById('next-area').classList.add('show');
+}
+
+function nextQuestion() {
+  session.idx++;
+  if(session.idx >= session.queue.length) {
+    showResult();
+  } else {
+    renderQuestion();
+    document.getElementById('quiz-body').scrollTop = 0;
+  }
+}
+
+function showResult() {
+  // Update global stats
+  const correct = session.results.filter(r=>r.correct).length;
+  const total = session.results.length;
+  state.attempts++;
+  state.totalCorrect += correct;
+  state.totalAnswered += total;
+  saveState();
+
+  showScreen('result');
+
+  const pct = Math.round(correct/total*100);
+  document.getElementById('result-pct').innerHTML = `${pct}<span class="score-pct-sym">%</span>`;
+
+  let grade = pct >= 90 ? '優秀' : pct >= 80 ? 'よくできました' : pct >= 70 ? '合格レベル' : '要復習';
+  document.getElementById('result-grade').textContent = grade;
+  document.getElementById('r-correct').textContent = correct;
+  document.getElementById('r-wrong').textContent = total - correct;
+  document.getElementById('r-total').textContent = total;
+
+  // Ring animation
+  const circumference = 439.8;
+  const fill = document.getElementById('ring-fill');
+  const ringColor = pct >= 80 ? '#C9A84C' : pct >= 60 ? '#4ECDC4' : '#ff6b6b';
+  fill.setAttribute('stroke', ringColor);
+  setTimeout(() => {
+    fill.style.strokeDashoffset = circumference * (1 - pct/100);
+  }, 100);
+
+  // Section chart
+  const secData = {};
+  SECTIONS.forEach(s => secData[s] = {correct:0,total:0});
+  session.results.forEach(r => {
+    secData[r.q.sec].total++;
+    if(r.correct) secData[r.q.sec].correct++;
+  });
+  let chartHtml = '';
+  SECTIONS.forEach(s => {
+    const d = secData[s];
+    if(d.total === 0) return;
+    const p = Math.round(d.correct/d.total*100);
+    const color = p >= 80 ? '#C9A84C' : p >= 60 ? '#4ECDC4' : '#ff6b6b';
+    chartHtml += `
+      <div class="sc-row">
+        <div class="sc-label">${s}</div>
+        <div class="sc-bar-wrap"><div class="sc-bar" style="width:0%;background:${color}" data-pct="${p}"></div></div>
+        <div class="sc-pct">${p}%</div>
+      </div>`;
+  });
+  document.getElementById('section-chart-body').innerHTML = chartHtml;
+  setTimeout(() => {
+    document.querySelectorAll('.sc-bar').forEach(b => b.style.width = b.dataset.pct + '%');
+  }, 200);
+
+  // Wrong list
+  const wrongs = session.results.filter(r=>!r.correct);
+  let wrongHtml = '';
+  if(wrongs.length > 0) {
+    wrongHtml = `<div class="wrong-title">❌ 間違えた問題（${wrongs.length}問）</div>`;
+    wrongs.forEach(r => {
+      wrongHtml += `
+        <div class="wrong-item">
+          <div class="wrong-q">${r.q.q}</div>
+          <div class="wrong-ans">あなたの答え：${LABELS[r.chosen]}. ${r.q.choices[r.chosen]}</div>
+          <div class="wrong-cor">正解：${LABELS[r.q.ans]}. ${r.q.choices[r.q.ans]}</div>
+        </div>`;
+    });
+  } else {
+    wrongHtml = `<div style="text-align:center;color:rgba(255,255,255,0.4);font-size:14px;padding:20px 0">全問正解です！🎉</div>`;
+  }
+  document.getElementById('wrong-section').innerHTML = wrongHtml;
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function goHome() {
+  updateHomeStats();
+  showScreen('home');
+}
+
+function confirmReset() {
+  if(confirm('学習履歴をすべてリセットしますか？')) {
+    state = { attempts:0, totalCorrect:0, totalAnswered:0, perQ:{} };
+    saveState();
+    updateHomeStats();
+    showToast('履歴をリセットしました');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Init
+loadState();
+updateHomeStats();
+</script>
+</body>
+</html>
