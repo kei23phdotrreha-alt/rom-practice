@@ -880,6 +880,13 @@ function renderQuestion() {
   if(idx === total-1) document.getElementById('next-btn').classList.add('gold-btn');
   else document.getElementById('next-btn').classList.remove('gold-btn');
 
+  // 選択肢をシャッフル（正解テキストを記憶してから並べ替え）
+  const correctText = q.choices[q.ans];
+  const shuffled = shuffle([...q.choices]);
+  const newAnsIdx = shuffled.indexOf(correctText);
+  session.currentShuffled = shuffled;
+  session.currentAnsIdx = newAnsIdx;
+
   const html = `
     <div class="section-chip">${q.sec}</div>
     <div class="question-card">
@@ -887,7 +894,7 @@ function renderQuestion() {
       <div class="question-text">${q.q}</div>
     </div>
     <div class="choices" id="choices">
-      ${q.choices.map((c,i) => `
+      ${shuffled.map((c,i) => `
         <button class="choice-btn" id="choice-${i}" onclick="answer(${i})">
           <span class="choice-label">${LABELS[i]}</span>
           <span>${c}</span>
@@ -907,7 +914,8 @@ function renderQuestion() {
 
 function answer(chosen) {
   const q = session.queue[session.idx];
-  const isCorrect = chosen === q.ans;
+  const newAnsIdx = session.currentAnsIdx;
+  const isCorrect = chosen === newAnsIdx;
 
   // Update state
   if(!state.perQ[q.id]) state.perQ[q.id] = {correct:0,total:0};
@@ -915,12 +923,13 @@ function answer(chosen) {
   if(isCorrect) state.perQ[q.id].correct++;
   saveState();
 
-  session.results.push({q, chosen, correct: isCorrect});
+  const chosenText = session.currentShuffled[chosen];
+  session.results.push({q, chosenText, correct: isCorrect});
 
   // Visual feedback
   document.querySelectorAll('.choice-btn').forEach((btn,i) => {
     btn.classList.add('disabled');
-    if(i === q.ans) btn.classList.add('correct');
+    if(i === newAnsIdx) btn.classList.add('correct');
     else if(i === chosen && !isCorrect) btn.classList.add('wrong');
   });
 
@@ -1006,8 +1015,8 @@ function showResult() {
       wrongHtml += `
         <div class="wrong-item">
           <div class="wrong-q">${r.q.q}</div>
-          <div class="wrong-ans">あなたの答え：${LABELS[r.chosen]}. ${r.q.choices[r.chosen]}</div>
-          <div class="wrong-cor">正解：${LABELS[r.q.ans]}. ${r.q.choices[r.q.ans]}</div>
+          <div class="wrong-ans">あなたの答え：${r.chosenText}</div>
+          <div class="wrong-cor">正解：${r.q.choices[r.q.ans]}</div>
         </div>`;
     });
   } else {
